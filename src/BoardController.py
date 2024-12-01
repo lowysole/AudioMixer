@@ -2,9 +2,8 @@ from Arduino import Arduino
 import serial.tools.list_ports
 
 import traceback
-import time
 
-class Controller:
+class ArduinoController:
     def __init__(self, baud=9600, port=None):
         self.baud = baud
         self.port = port
@@ -28,7 +27,9 @@ class Controller:
             print(traceback.format_exc())
 
     def update(self):
-
+        if not self.board.is_open:
+            return
+        
         self.board.flush()
         result = str(self.board.readline())
 
@@ -45,7 +46,8 @@ class Controller:
 
 
     def close(self):
-        self.board.close()
+        if self.board:
+            self.board.close()
 
     def reconnect(self, port):
         self.close()
