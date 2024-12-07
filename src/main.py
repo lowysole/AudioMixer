@@ -1,7 +1,8 @@
+from threading import Thread
+
 import App
 from AudioController import AudioController
 from BoardController import ArduinoController
-from threading import Thread
 
 def controllers_thread( application, arduino_controller, audio_controller ):
     while application.update():
@@ -11,21 +12,21 @@ def controllers_thread( application, arduino_controller, audio_controller ):
 
 def main():
     arduino_controller = ArduinoController(9600, "COM3")
-    arduino_controller.start()
-
     audio_controller = AudioController(arduino_controller)
-    audio_controller.start()
+    application = App.Application(audio_controller)
 
-    application = App.Application()
+    arduino_controller.start()
+    audio_controller.start()
     application.start()
 
-    # Controllers threads 
-    thread = Thread(target=controllers_thread, args=(application, arduino_controller, audio_controller))
+    # Controllers threads
+    thread = Thread(target=controllers_thread,
+                    args=(application, arduino_controller, audio_controller))
     thread.daemon = True
     thread.start()
 
 
-    # application.start_main_loop()
+    application.start_main_loop()
 
     thread.join()
 

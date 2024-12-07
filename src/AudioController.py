@@ -1,5 +1,3 @@
-
-
 from comtypes import CLSCTX_ALL
 from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
 
@@ -20,7 +18,6 @@ class AudioController:
 
     def start(self):
         self.devices = AudioUtilities.GetSpeakers()
-        self.get_audio_sessions()
         self.interface = self.devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
 
         # Volumes
@@ -33,12 +30,11 @@ class AudioController:
     def update(self):
         if not self.arduino_controller:
             return
-        
+
         slicer_main_gain = self.arduino_controller.get_slicer_main_gain()
         if abs(self.volume_main.GetMasterVolumeLevel() - slicer_main_gain) > self.volume_threshold:
             self.volume_main.SetMasterVolumeLevel(slicer_main_gain / MAX_LEVEL * 100, None)
 
-        self.get_audio_sessions()
         for i in range(0,4):
             if self.sessions[i]:
                 slicer_gain = self.arduino_controller.get_slicer_gain(i)
@@ -46,15 +42,15 @@ class AudioController:
                     self.volumes[i].SetMasterVolume(slicer_gain / MAX_LEVEL * 100, None)
 
 
-    def get_audio_sessions(self):
+    def update_audio_sessions(self, values):
+
         sessions = AudioUtilities.GetAllSessions()
         for session in sessions:
-            if session.Process and session.Process.name() == "null":
+            if session.Process and session.Process.name() == values[0]:
                 self.sessions[0] = session
-            elif session.Process and session.Process.name() == "chrome.exe":
+            elif session.Process and session.Process.name() == values[1]:
                 self.sessions[1] = session
-            elif session.Process and session.Process.name() == "spotify.exe":
+            elif session.Process and session.Process.name() == values[2]:
                 self.sessions[2] = session
-            elif session.Process and session.Process.name() == "null":
+            elif session.Process and session.Process.name() == values[3]:
                 self.sessions[3] = session
-
