@@ -48,8 +48,6 @@ class ArduinoController:
             except ValueError:
                 print(f"Discarting received slider {i} value...")
 
-                
-
         # self.printPinInfo()
 
 
@@ -67,8 +65,14 @@ class ArduinoController:
         assert ( id < 4)
         return self.slicer[id]
     
-    def get_slicer_main_gain( self):
+
+    def get_slicer_main_gain(self):
         return self.slicer_main
+    
+
+    def is_opened(self):
+        return self.board.is_open
+
 
     def printPinInfo(self):
         print("---------------")
@@ -77,7 +81,5 @@ class ArduinoController:
         print(f"Pin A2: {self.slicer[2]}")
         print(f"Pin A3: {self.slicer[3]}")
         print(f"Pin A4: {self.slicer_main}")
-
-
 
         

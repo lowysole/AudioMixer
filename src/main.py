@@ -11,13 +11,19 @@ def controllers_thread( application, arduino_controller, audio_controller ):
 
 
 def main():
+
+    App.release_lock()
+
+    if not App.check_lock():
+        return
+
     arduino_controller = ArduinoController(9600, "COM3")
     audio_controller = AudioController(arduino_controller)
     application = App.Application(audio_controller)
 
+    application.start()
     arduino_controller.start()
     audio_controller.start()
-    application.start()
 
     # Controllers threads
     thread = Thread(target=controllers_thread,

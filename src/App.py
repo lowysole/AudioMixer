@@ -67,14 +67,9 @@ class Application:
 
         read_settings_file(self.slider_apps, self.button_apps)
 
-        self.audio_controller.update_audio_sessions(self.slider_apps)
-
-        # release_lock()
+        self.audio_controller.set_audio_sessions_name(self.slider_apps)
 
     def start(self):
-        if not check_lock():
-            return
-
         self.app.title("Audio Mixer")
         self.app.geometry("380x480")
         self.app.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -114,5 +109,5 @@ class Application:
 
 
     def _save_settings(self):
-        self.audio_controller.update_audio_sessions(self.slider_apps)
+        self.audio_controller.set_audio_sessions_name(self.slider_apps)
         save_settings_file(self.slider_apps, self.button_apps)
