@@ -7,47 +7,54 @@ import os
 LOCKFILE = "app.lock"
 SETTINGS = "settings.json"
 
+
 def read_settings_file(sliders, buttons):
     if not os.path.exists(SETTINGS):
         return
 
-    with open(SETTINGS, 'r', encoding='utf-8') as settings_file:
+    with open(SETTINGS, "r", encoding="utf-8") as settings_file:
         json_file = json.load(settings_file)
 
-        sliders[0].set(json_file['sliders']['slider_1'])
-        sliders[1].set(json_file['sliders']['slider_2'])
-        sliders[2].set(json_file['sliders']['slider_3'])
-        sliders[3].set(json_file['sliders']['slider_4'])
+        sliders[0].set(json_file["sliders"]["slider_1"])
+        sliders[1].set(json_file["sliders"]["slider_2"])
+        sliders[2].set(json_file["sliders"]["slider_3"])
+        sliders[3].set(json_file["sliders"]["slider_4"])
 
-        buttons[0].set(json_file['buttons']['button_1'])
-        buttons[1].set(json_file['buttons']['button_2'])
-        buttons[2].set(json_file['buttons']['button_3'])
-        buttons[3].set(json_file['buttons']['button_4'])
+        buttons[0].set(json_file["buttons"]["button_1"])
+        buttons[1].set(json_file["buttons"]["button_2"])
+        buttons[2].set(json_file["buttons"]["button_3"])
+        buttons[3].set(json_file["buttons"]["button_4"])
 
 
 def save_settings_file(sliders, buttons):
-    with open(SETTINGS, 'w', encoding='utf-8') as settings_file:
-
-        data = { 'sliders' : {'slider_1': sliders[0].get(),
-                              'slider_2': sliders[1].get(),
-                              'slider_3': sliders[2].get(),
-                              'slider_4': sliders[3].get() },
-                'buttons' : {'button_1': buttons[0].get(),
-                             'button_2': buttons[1].get(),
-                             'button_3': buttons[2].get(),
-                             'button_4': buttons[3].get() }
+    with open(SETTINGS, "w", encoding="utf-8") as settings_file:
+        data = {
+            "sliders": {
+                "slider_1": sliders[0].get(),
+                "slider_2": sliders[1].get(),
+                "slider_3": sliders[2].get(),
+                "slider_4": sliders[3].get(),
+            },
+            "buttons": {
+                "button_1": buttons[0].get(),
+                "button_2": buttons[1].get(),
+                "button_3": buttons[2].get(),
+                "button_4": buttons[3].get(),
+            },
         }
 
-        json.dump(data, settings_file )
+        json.dump(data, settings_file)
+
 
 def check_lock():
     if os.path.exists(LOCKFILE):
         print("The app is already running!")
         return False
     # Create lock file
-    with open(LOCKFILE, "w", encoding='utf-8') as f:
+    with open(LOCKFILE, "w", encoding="utf-8") as f:
         f.write("locked")
     return True
+
 
 def release_lock():
     if os.path.exists(LOCKFILE):
@@ -62,8 +69,18 @@ class Application:
         self.audio_controller = audio_controller
 
         # App parameters
-        self.slider_apps = [tk.StringVar(), tk.StringVar(), tk.StringVar(), tk.StringVar()]
-        self.button_apps = [tk.StringVar(), tk.StringVar(), tk.StringVar(), tk.StringVar()]
+        self.slider_apps = [
+            tk.StringVar(),
+            tk.StringVar(),
+            tk.StringVar(),
+            tk.StringVar(),
+        ]
+        self.button_apps = [
+            tk.StringVar(),
+            tk.StringVar(),
+            tk.StringVar(),
+            tk.StringVar(),
+        ]
 
         read_settings_file(self.slider_apps, self.button_apps)
 
@@ -90,23 +107,19 @@ class Application:
         ttk.Label(text="", master=self.app).pack()
         ttk.Button(text="Save", command=self._save_settings).pack()
 
-
     def update(self):
         if self.finished:
             return False
 
         return True
 
-
     def start_main_loop(self):
         self.app.mainloop()
-
 
     def _on_close(self):
         self.finished = True
         release_lock()
         self.app.destroy()
-
 
     def _save_settings(self):
         self.audio_controller.set_audio_sessions_name(self.slider_apps)
