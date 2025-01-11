@@ -5,22 +5,23 @@ from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
 
 mutex = threading.Lock()
 
-MAX_LEVEL = 1024
-
 
 class AudioController:
     def __init__(self, arduino_controller):
         self.devices = None
         self.interface = None
-        self.sessions = [None, None, None, None]
-        self.sessions_name = ["", "", "", ""]
 
-        self.arduino_controller = arduino_controller
+        self._sessions = [None, None, None, None]
+        self._sessions_name = ["", "", "", ""]
+        self._sessions_size = len(self._sessions)
 
-        self.volume_threshold = 4.0
+        self._arduino_controller = arduino_controller
 
-        self.volume_main = 0.0
-        self.volumes = [None, None, None, None]
+        self._volume_threshold = 0.01
+        self._volume_main = 0.0
+        self._volumes = [None, None, None, None]
+
+        assert len(self._sessions) == len(self._volumes)
 
     def start(self):
         self.devices = AudioUtilities.GetSpeakers()
@@ -31,67 +32,65 @@ class AudioController:
         self._update_audio_sessions()
         self._update_audio_volumes()
 
-        self.volume_main = self.interface.QueryInterface(IAudioEndpointVolume)
+        self._volume_main = self.interface.QueryInterface(IAudioEndpointVolume)
 
     def update(self):
-        if not self.arduino_controller.is_opened():
+        if not self._arduino_controller.is_opened():
             return
 
         mutex.acquire()
 
-        slicer_main_gain = self.arduino_controller.get_slicer_main_gain()
+        slicer_main_gain = self._arduino_controller.get_slicer_main_gain()
         if (
-            abs(self.volume_main.GetMasterVolumeLevel() - slicer_main_gain)
-            > self.volume_threshold
+            abs(self._volume_main.GetMasterVolumeLevelScalar() - slicer_main_gain)
+            > self._volume_threshold
         ):
-            self.volume_main.SetMasterVolumeLevel(
-                slicer_main_gain / MAX_LEVEL * 100, None
-            )
+            self._volume_main.SetMasterVolumeLevelScalar(slicer_main_gain, None)
 
         self._update_audio_sessions()
         self._update_audio_volumes()
 
-        for i in range(0, 4):
-            if self.sessions[i]:
-                slicer_gain = self.arduino_controller.get_slicer_gain(i)
+        for i in range(0, self._sessions_size):
+            if self._sessions[i]:
+                slicer_gain = self._arduino_controller.get_slicer_gain(i)
                 if (
-                    abs(self.volumes[i].GetMasterVolume() - slicer_gain)
-                    > self.volume_threshold
+                    abs(self._volumes[i].GetMasterVolume() - slicer_gain)
+                    > self._volume_threshold
                 ):
-                    self.volumes[i].SetMasterVolume(slicer_gain / MAX_LEVEL * 100, None)
+                    self._volumes[i].SetMasterVolume(slicer_gain, None)
 
         mutex.release()
 
     def _update_audio_sessions(self):
         sessions = AudioUtilities.GetAllSessions()
         for session in sessions:
-            for i in range(0, 4):
+            for i in range(0, self._sessions_size):
                 if not session.Process:
                     break
 
                 if (
-                    self.sessions_name[i] == "Active"
-                    and session.Process.name() not in self.sessions_name
+                    self._sessions_name[i] == "Active"
+                    and session.Process.name() not in self._sessions_name
                 ):
                     if session.State:
-                        self.sessions_name[i] = session.Process.name()
+                        self._sessions_name[i] = session.Process.name()
 
-                if session.Process.name() == self.sessions_name[i]:
-                    self.sessions[i] = session
+                if session.Process.name() == self._sessions_name[i]:
+                    self._sessions[i] = session
                     break
 
     def _update_audio_volumes(self):
-        for i in range(0, 4):
-            if self.sessions[i]:
-                self.volumes[i] = self.sessions[i].SimpleAudioVolume
+        for i in range(0, self._sessions_size):
+            if self._sessions[i]:
+                self._volumes[i] = self._sessions[i].SimpleAudioVolume
 
     def set_audio_sessions_name(self, values):
         mutex.acquire()
 
-        for i in range(0, 4):
+        for i in range(0, self._sessions_size):
             if values[i].get() == "Active":
-                self.sessions_name[i] = f"{values[i].get()}"
+                self._sessions_name[i] = f"{values[i].get()}"
             elif values[i].get() != "":
-                self.sessions_name[i] = f"{values[i].get()}.exe"
+                self._sessions_name[i] = f"{values[i].get()}.exe"
 
         mutex.release()

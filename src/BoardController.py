@@ -3,15 +3,22 @@ import traceback
 from Arduino import Arduino
 import serial.tools.list_ports
 
+DEBUG = True
+
 
 class ArduinoController:
-    def __init__(self, baud=9600, port=None):
+    def __init__(self, baud=57600, port=None):
         self.baud = baud
         self.port = port
         self.board = None
 
-        self.slicer_main = 0
-        self.slicer = [0.0, 0.0, 0.0, 0.0]
+        self._slicer_main = 0
+        self._slicer = [0.0, 0.0, 0.0, 0.0]
+        self._slicer_num = len(self._slicer) + 1
+
+        self._buttons = [False, False, False, False]
+        self._buttons_previous_state = [False, False, False, False]
+        self._buttons_size = len(self._buttons)
 
     def start(self):
         try:
@@ -30,24 +37,29 @@ class ArduinoController:
         result = ""
         try:
             result = self.board.readline().decode("utf-8").strip()
-            result = result[2:-5]
         except UnicodeDecodeError:
             print("Error decoding characters...")
             return
 
-        print(result)
+        if DEBUG:
+            print(result)
+
         result_splited = result.split("|")
-        if len(result_splited) != 5:
+        if len(result_splited) != self._slicer_num + self._buttons_size:
             print("Discarting received values...")
             return
 
-        for i in range(0, 5):
+        for i in range(0, self._slicer_num + self._buttons_size):
             try:
-                self.slicer[i] = int(result_splited[i])
+                if i == 0:
+                    self._slicer_main = int(result_splited[i]) * 0.01
+                elif i < self._slicer_num:
+                    self._slicer[i - 1] = int(result_splited[i]) * 0.01
+                elif i < self._slicer_num + self._buttons_size:
+                    self._buttons[i - self._slicer_num] = int(result_splited[i])
+
             except ValueError:
                 print(f"Discarting received slider {i} value...")
-
-        # self.printPinInfo()
 
     def close(self):
         if self.board:
@@ -60,18 +72,10 @@ class ArduinoController:
 
     def get_slicer_gain(self, id):
         assert id < 4
-        return self.slicer[id]
+        return self._slicer[id]
 
     def get_slicer_main_gain(self):
-        return self.slicer_main
+        return self._slicer_main
 
     def is_opened(self):
         return self.board.is_open
-
-    def printPinInfo(self):
-        print("---------------")
-        print(f"Pin A0: {self.slicer[0]}")
-        print(f"Pin A1: {self.slicer[1]}")
-        print(f"Pin A2: {self.slicer[2]}")
-        print(f"Pin A3: {self.slicer[3]}")
-        print(f"Pin A4: {self.slicer_main}")
