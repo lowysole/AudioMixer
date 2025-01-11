@@ -2,7 +2,7 @@
 #include <Wire.h>
 
 const int NUM_SLIDERS = 5;
-const int analogInputs[NUM_SLIDERS] = { A0, A1, A2, A3, A7 };
+const int analogInputs[NUM_SLIDERS] = { A7, A0, A1, A2, A3 };
 const int NUM_BUTTONS = 4;
 const int digitalInputs[NUM_BUTTONS] = { 2, 3, 4, 5 };
 const int digitalOutputs[NUM_BUTTONS] = { 7, 8, 9, 10 };
@@ -22,7 +22,7 @@ void setup() {
     pinMode(digitalOutputs[i], OUTPUT);
   }
 
-  Serial.begin(57600);
+  Serial.begin(9600);
 }
 
 void loop() {
@@ -43,24 +43,20 @@ void setupDisplay() {
 
 int updateSliderValues(int slider) {
   // Invert values from main slider (knob)
-  if (slider == NUM_SLIDERS - 1) {
-    return (1023 - analogRead(analogInputs[NUM_SLIDERS - 1])) * 0.09765625; // 100/1024
-  } else if (slider < NUM_SLIDERS - 1) {
+  if (slider == 0) {
+    return (1023 - analogRead(analogInputs[0])) * 0.09765625;  // 100/1024
+  } else if (slider < NUM_SLIDERS) {
     return analogRead(analogInputs[slider]) * 0.09765625;
   }
 
   return 0;
 }
-bool buttonState = HIGH;  // Estado del botón (inicialmente no presionado)
-unsigned long lastPressTime = 0; // Tiempo de la última pulsación
-const unsigned long debounceDelay = 50; // Tiempo de debounce en ms
 
 bool updateButtonValues(int button) {
   bool inputState = !digitalRead(digitalInputs[button]);
   digitalWrite(digitalOutputs[button], inputState);
   return inputState;
 }
-
 
 void sendOutputValues() {
   String builtString = String("");
