@@ -8,31 +8,37 @@ mutex = threading.Lock()
 
 class AudioController:
     def __init__(self, arduino_controller):
-        self.devices = None
-        self.interface = None
+        self.speaker = None
+        self.mic = None
 
         self._sessions = [None, None, None, None]
         self._sessions_name = ["", "", "", ""]
         self._sessions_size = len(self._sessions)
 
+        self._mic_main = None
+
         self._arduino_controller = arduino_controller
 
         self._volume_threshold = 0.01
-        self._volume_main = 0.0
+        self._volume_main = None
         self._volumes = [None, None, None, None]
 
         assert len(self._sessions) == len(self._volumes)
 
     def start(self):
-        self.devices = AudioUtilities.GetSpeakers()
-        self.interface = self.devices.Activate(
+        self.speaker = AudioUtilities.GetSpeakers()
+        speaker_interface = self.speaker.Activate(
             IAudioEndpointVolume._iid_, CLSCTX_ALL, None
         )
 
         self._update_audio_sessions()
         self._update_audio_volumes()
 
-        self._volume_main = self.interface.QueryInterface(IAudioEndpointVolume)
+        self._volume_main = speaker_interface.QueryInterface(IAudioEndpointVolume)
+
+        self.mic = AudioUtilities.GetMicrophone()
+        mic_interface = self.mic.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+        self._mic_main = mic_interface.QueryInterface(IAudioEndpointVolume)
 
     def update(self):
         if not self._arduino_controller.is_opened():
@@ -59,6 +65,8 @@ class AudioController:
                 ):
                     self._volumes[i].SetMasterVolume(slicer_gain, None)
 
+        self._update_buttons()
+
         mutex.release()
 
     def _update_audio_sessions(self):
@@ -83,6 +91,12 @@ class AudioController:
         for i in range(0, self._sessions_size):
             if self._sessions[i]:
                 self._volumes[i] = self._sessions[i].SimpleAudioVolume
+
+    def _update_buttons(self):
+        muted = self._arduino_controller.get_button_speaker_mute()
+        self._volume_main.SetMute(muted, None)
+        muted = self._arduino_controller.get_button_mic_mute()
+        self._mic_main.SetMute(muted, None)
 
     def set_audio_sessions_name(self, values):
         mutex.acquire()

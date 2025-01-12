@@ -17,7 +17,6 @@ class ArduinoController:
         self._slicer_num = len(self._slicer) + 1
 
         self._buttons = [False, False, False, False]
-        self._buttons_previous_state = [False, False, False, False]
         self._buttons_size = len(self._buttons)
 
     def start(self):
@@ -77,5 +76,23 @@ class ArduinoController:
     def get_slicer_main_gain(self):
         return self._slicer_main
 
+    def get_button_speaker_mute(self):
+        return self._buttons[0]
+
+    def set_button_speaker_mute(self, value):
+        self._buttons[0] = value
+
+    def get_button_mic_mute(self):
+        return self._buttons[1]
+
+    def set_button_mic_mute(self, value):
+        self._buttons[1] = value
+
     def is_opened(self):
         return self.board.is_open
+
+    def send_board_init_buttons(self, value1, value2):
+        self._send_command(f"INIT_BUTTON|{value1}|{value2}|")
+
+    def _send_command(self, message):
+        self.board.write(message)
