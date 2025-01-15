@@ -88,6 +88,12 @@ class ArduinoController:
     def set_button_mic_mute(self, value):
         self._buttons[1] = value
 
+    def get_button_player_control_first(self):
+        return self._buttons[2]
+
+    def get_button_player_control_second(self):
+        return self._buttons[3]
+
     def is_opened(self):
         return self.board.is_open
 
