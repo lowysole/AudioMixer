@@ -3,23 +3,28 @@ from threading import Thread
 import App
 from AudioController import AudioController
 from BoardController import ArduinoController
+from ButtonController import ButtonController
 
 
-def controllers_thread(application, arduino_controller, audio_controller):
+def controllers_thread(
+    application, arduino_controller, audio_controller, button_controller
+):
     while application.update():
         arduino_controller.update()
         audio_controller.update()
+        button_controller.update()
 
 
 def main():
-    App.release_lock()
+    App.release_lock()  ## Uncomment
 
     if not App.check_lock():
         return
 
-    arduino_controller = ArduinoController(9600, "COM3")
+    arduino_controller = ArduinoController(115200)
     audio_controller = AudioController(arduino_controller)
-    application = App.Application(audio_controller)
+    button_controller = ButtonController(arduino_controller, audio_controller)
+    application = App.Application(audio_controller, button_controller)
 
     application.start()
     arduino_controller.start()
@@ -28,7 +33,7 @@ def main():
     # Controllers threads
     thread = Thread(
         target=controllers_thread,
-        args=(application, arduino_controller, audio_controller),
+        args=(application, arduino_controller, audio_controller, button_controller),
     )
     thread.daemon = True
     thread.start()
