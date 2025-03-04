@@ -3,13 +3,15 @@ import traceback
 from Arduino import Arduino
 import serial.tools.list_ports
 
+import ButtonController
+
 DEBUG = True
 
 
 class ArduinoController:
-    def __init__(self, baud=57600, port=None):
+    def __init__(self, baud=57600):
         self.baud = baud
-        self.port = port
+        self.port = self.get_port()
         self.board = None
 
         self._slicer_main = 0
@@ -17,7 +19,6 @@ class ArduinoController:
         self._slicer_num = len(self._slicer) + 1
 
         self._buttons = [False, False, False, False]
-        self._buttons_size = len(self._buttons)
 
     def start(self):
         try:
@@ -31,7 +32,8 @@ class ArduinoController:
 
     def update(self):
         if not self.board.is_open:
-            return
+            if not self.reconnect():
+                return
 
         result = ""
         try:
@@ -44,17 +46,17 @@ class ArduinoController:
             print(result)
 
         result_splited = result.split("|")
-        if len(result_splited) != self._slicer_num + self._buttons_size:
+        if len(result_splited) != self._slicer_num + ButtonController.NUM_BUTTONS:
             print("Discarting received values...")
             return
 
-        for i in range(0, self._slicer_num + self._buttons_size):
+        for i in range(0, self._slicer_num + ButtonController.NUM_BUTTONS):
             try:
                 if i == 0:
                     self._slicer_main = int(result_splited[i]) * 0.01
                 elif i < self._slicer_num:
                     self._slicer[i - 1] = int(result_splited[i]) * 0.01
-                elif i < self._slicer_num + self._buttons_size:
+                elif i < self._slicer_num + ButtonController.NUM_BUTTONS:
                     self._buttons[i - self._slicer_num] = int(result_splited[i])
 
             except ValueError:
@@ -64,10 +66,24 @@ class ArduinoController:
         if self.board:
             self.board.close()
 
-    def reconnect(self, port):
-        self.close()
-        self.port = port
-        self.board = Arduino(port)
+    def reconnect(self):
+        try:
+            self.port = self.get_port()
+            self.board = Arduino(self.board.baudrate, self.port)
+            self.board.open()
+            return True
+        except Exception:
+            print(traceback.format_exc())
+            return False
+
+    def get_port(self):
+        ports = list(serial.tools.list_ports.comports())
+        for port in ports:
+            if "USB-SERIAL CH340" in port.description:
+                print(f"Arduino found on Port: {port.device}")
+                return port.device
+
+        print("Arduino device not found.")
 
     def get_slicer_gain(self, id):
         assert id < 4
@@ -76,29 +92,31 @@ class ArduinoController:
     def get_slicer_main_gain(self):
         return self._slicer_main
 
-    def get_button_speaker_mute(self):
-        return self._buttons[0]
+    def get_button_value(self, id):
+        assert id < ButtonController.NUM_BUTTONS
+        return self._buttons[id]
 
-    def set_button_speaker_mute(self, value):
-        self._buttons[0] = value
-
-    def get_button_mic_mute(self):
-        return self._buttons[1]
-
-    def set_button_mic_mute(self, value):
-        self._buttons[1] = value
-
-    def get_button_player_control_first(self):
-        return self._buttons[2]
-
-    def get_button_player_control_second(self):
-        return self._buttons[3]
+    def set_button_value(self, id, value):
+        assert id < ButtonController.NUM_BUTTONS
+        self._buttons[id] = value
 
     def is_opened(self):
-        return self.board.is_open
+        if self.board:
+            return self.board.is_open
+        else:
+            return False
 
-    def send_board_init_buttons(self, value1, value2):
-        self._send_command(f"INIT_BUTTON|{value1}|{value2}|")
+    def send_board_button_mode(self, values):
+        assert len(values) == ButtonController.NUM_BUTTONS
+        self._send_command(
+            f"BUTTON_MODE|{values[0]}|{values[1]}|{values[2]}|{values[3]}"
+        )
+
+    def send_board_button_init(self, values):
+        assert len(values) == ButtonController.NUM_BUTTONS
+        self._send_command(
+            f"BUTTON_INIT|{values[0]}|{values[1]}|{values[2]}|{values[3]}"
+        )
 
     def _send_command(self, message):
         self.board.write(message)
