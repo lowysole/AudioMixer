@@ -31,7 +31,7 @@ class ArduinoController:
             print(traceback.format_exc())
 
     def update(self):
-        if not self.board.is_open:
+        if not self.board.isOpen():
             if not self.reconnect():
                 return
 
@@ -73,7 +73,7 @@ class ArduinoController:
             self.board.open()
             return True
         except Exception:
-            print(traceback.format_exc())
+            # print(traceback.format_exc())
             return False
 
     def get_port(self):
@@ -83,7 +83,7 @@ class ArduinoController:
                 print(f"Arduino found on Port: {port.device}")
                 return port.device
 
-        print("Arduino device not found.")
+        # print("Arduino device not found.")
 
     def get_slicer_gain(self, id):
         assert id < 4
@@ -102,7 +102,7 @@ class ArduinoController:
 
     def is_opened(self):
         if self.board:
-            return self.board.is_open
+            return self.board.isOpen()
         else:
             return False
 

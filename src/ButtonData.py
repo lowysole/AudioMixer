@@ -7,6 +7,7 @@ class ButtonIndex(Enum):
     NAME = 0
     MODE = 1
     PROGRAM = 2
+    PROGRAM_PATH = 3
 
 
 class Mode(Enum):
@@ -15,6 +16,14 @@ class Mode(Enum):
 
 
 mode_names = ["On Push", "Toggle"]
+
+
+class ProgramModes(Enum):
+    PROGRAM = 0
+    PROGRAM_PATH = 1
+
+
+program_mode_names = ["Program", "Program (Enter Path)"]
 
 
 def get_mode_from_name(name):
@@ -34,6 +43,7 @@ class Type(Enum):
 _button_list = [
     {"type": Type.NONE, "action": ""},
     {"type": Type.PROGRAM, "action": ""},
+    {"type": Type.PROGRAM, "action": ""},
     # Sound Type
     {"type": Type.SOUND, "action": "mic"},
     {"type": Type.SOUND, "action": "speakers"},
@@ -43,10 +53,11 @@ _button_list = [
     {"type": Type.VK, "action": win32con.VK_MEDIA_PREV_TRACK},
 ]
 
-
+# TODO Merge both lists
 button_list_names = [
     "",
     "Program",
+    "Program (Enter Path)",
     # Sound Type
     "Mute Mic",
     "Mute Speakers",

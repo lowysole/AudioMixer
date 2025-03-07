@@ -1,8 +1,10 @@
 from datetime import datetime
-from enum import Enum
+import subprocess
 
-import win32api, win32con
+import win32api
+
 import ButtonData
+import Utils
 
 
 NUM_BUTTONS = 4
@@ -19,6 +21,8 @@ class ButtonController:
             [[-1, ButtonData.Mode.PUSH_SINGLE, ""] for _ in range(NUM_BUTTONS)]
             for _ in range(NUM_PRESETS)
         ]
+
+        self.programs = Utils.get_full_list_installed_apps()
 
         self._lastButtonsState = [0, 0, 0, 0]
         self._lastPressTime = [0, 0, 0, 0]
@@ -62,23 +66,49 @@ class ButtonController:
     def update_button_values(self, button_apps):
         for preset in range(NUM_PRESETS):
             for button in range(NUM_BUTTONS):
+                button_name = button_apps[preset][button][
+                    ButtonData.ButtonIndex.NAME.value
+                ]
+
                 self.buttons[preset][button][ButtonData.ButtonIndex.NAME.value] = (
-                    ButtonData.get_button_id_from_name(
-                        button_apps[preset][button][ButtonData.ButtonIndex.NAME.value]
-                    )
+                    ButtonData.get_button_id_from_name(button_name)
                 )
+
                 self.buttons[preset][button][ButtonData.ButtonIndex.MODE.value] = (
                     ButtonData.get_mode_from_name(
                         button_apps[preset][button][ButtonData.ButtonIndex.MODE.value]
                     )
                 )
-                self.buttons[preset][button][ButtonData.ButtonIndex.PROGRAM.value] = (
-                    ButtonData.get_mode_from_name(
+
+                program_name = ""
+                if (
+                    button_name
+                    == ButtonData.program_mode_names[
+                        ButtonData.ProgramModes.PROGRAM.value
+                    ]
+                ):
+                    program_name = self.programs[
                         button_apps[preset][button][
                             ButtonData.ButtonIndex.PROGRAM.value
                         ]
-                    )
+                    ]
+
+                elif (
+                    button_name
+                    == ButtonData.program_mode_names[
+                        ButtonData.ProgramModes.PROGRAM_PATH.value
+                    ]
+                ):
+                    program_name = button_apps[preset][button][
+                        ButtonData.ButtonIndex.PROGRAM_PATH.value
+                    ]
+
+                self.buttons[preset][button][ButtonData.ButtonIndex.PROGRAM.value] = (
+                    program_name
                 )
+
+    def get_program_names(self):
+        return list(self.programs.keys())
 
     def _apply_button(self, i):
         button_id = self.buttons[self._current_preset][i][0]
@@ -93,8 +123,7 @@ class ButtonController:
                 self._apply_vk_button(ButtonData.get_button_action_from_id(button_id))
 
             case ButtonData.Type.PROGRAM:
-                # TODO
-                return
+                self._apply_open_program(i)
 
             case _:
                 return
@@ -111,6 +140,26 @@ class ButtonController:
             win32api.keybd_event(action, hwcode)
         except Exception:
             print("Key not mapped to any know key")
+
+    def _apply_open_program(self, id):
+        program_name = self.buttons[self._current_preset][id][2]
+
+        try:
+            result = subprocess.run(
+                ["where", program_name], capture_output=True, text=True, check=True
+            )
+        except Exception as e:
+            print(f"Error finding path for program {program_name}: {e}")
+            return
+
+        path = result.stdout.strip().split("\n")[0]  # Get the first found path
+        if not path:
+            print("Path for {program_name} not found")
+
+        try:
+            subprocess.Popen(path, shell=True)
+        except Exception as e:
+            print(f"Error opening {program_name}: {e}")
 
     def _update_preset(self, i):
         if i == 3:

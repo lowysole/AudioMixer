@@ -36,6 +36,11 @@ def read_settings_file(sliders, buttons):
                 buttons[preset][button][ButtonData.ButtonIndex.PROGRAM.value] = (
                     json_buttons[str(button_id)][ButtonData.ButtonIndex.PROGRAM.value]
                 )
+                buttons[preset][button][ButtonData.ButtonIndex.PROGRAM_PATH.value] = (
+                    json_buttons[str(button_id)][
+                        ButtonData.ButtonIndex.PROGRAM_PATH.value
+                    ]
+                )
 
 
 def save_settings_file(sliders, buttons):
@@ -57,6 +62,7 @@ def save_settings_file(sliders, buttons):
                     buttons[preset][button][ButtonData.ButtonIndex.NAME.value],
                     buttons[preset][button][ButtonData.ButtonIndex.MODE.value],
                     buttons[preset][button][ButtonData.ButtonIndex.PROGRAM.value],
+                    buttons[preset][button][ButtonData.ButtonIndex.PROGRAM_PATH.value],
                 ]
 
         json.dump(data, settings_file)
@@ -95,7 +101,7 @@ class Application:
 
         self.button_apps = [
             [
-                [ButtonData.button_list_names[0], ButtonData.mode_names[0], ""]
+                [ButtonData.button_list_names[0], ButtonData.mode_names[0], "", ""]
                 for _ in range(ButtonController.NUM_BUTTONS)
             ]
             for _ in range(ButtonController.NUM_PRESETS)
@@ -107,6 +113,8 @@ class Application:
         self._update_values()
 
     def start(self):
+        # TODO Uncomment self._check_lock()
+
         self.app.title("Audio Mixer")
         self.app.geometry("480x480")
         self.app.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -149,20 +157,24 @@ class Application:
         self.frame.pack(pady=20)
 
         self.comboboxes = []
-        self.entries = []
+        self.dynamic_widgets = {}  # Para almacenar los widgets dinámicos
 
         for i in range(ButtonController.NUM_BUTTONS):
             row = []
+
+            # Combobox en la primera columna
             cb = ttk.Combobox(
                 self.frame, values=ButtonData.button_list_names, state="readonly"
             )
             cb.grid(row=i, column=0, padx=5, pady=5)
             cb.bind(
                 "<<ComboboxSelected>>",
-                lambda event, index=i: self._check_entries(index),
+                lambda event, index=i: self._update_third_column(index),
             )
+            cb.set(ButtonData.button_list_names[0])  # Default value
             row.append(cb)
 
+            # Combobox en la segunda columna
             cb2 = ttk.Combobox(
                 self.frame, values=ButtonData.mode_names, state="readonly"
             )
@@ -170,14 +182,14 @@ class Application:
             cb2.grid(row=i, column=1, padx=5, pady=5)
             row.append(cb2)
 
-            entry_var = tk.StringVar()
-            entry = tk.Entry(self.frame, textvariable=entry_var, state=tk.DISABLED)
-            entry.grid(row=i, column=2, padx=5, pady=5)
-            row.append(entry)
+            # Frame contenedor para el tercer campo (puede ser Combobox o Entry)
+            frame_dynamic = tk.Frame(self.frame)
+            frame_dynamic.grid(row=i, column=2, padx=5, pady=5)
+            self.dynamic_widgets[i] = frame_dynamic  # Guardamos el frame contenedor
 
             self.comboboxes.append(row)
-            self.entries.append(entry_var)
 
+        # Botones de presets
         self.prev_button = tk.Button(self.app, text="<<", command=self._prev_preset)
         self.prev_button.pack(side=tk.LEFT, padx=10)
 
@@ -199,41 +211,76 @@ class Application:
                     ButtonData.ButtonIndex.MODE.value
                 ]
             )
-            self._check_entries(i)
+            self._update_third_column(i)
         self.label_preset.config(text=f"Preset {self.current_preset + 1}")
 
     def _save_preset(self):
         for i in range(ButtonController.NUM_BUTTONS):
-            selected_value = self.comboboxes[i][ButtonData.ButtonIndex.NAME.value].get()
-            program_name = ""
-            if selected_value == "Program":
-                program_name = self.entries[i].get()
-
             self.button_apps[self.current_preset][i][
                 ButtonData.ButtonIndex.NAME.value
             ] = self.comboboxes[i][ButtonData.ButtonIndex.NAME.value].get()
             self.button_apps[self.current_preset][i][
                 ButtonData.ButtonIndex.MODE.value
             ] = self.comboboxes[i][ButtonData.ButtonIndex.MODE.value].get()
+
             self.button_apps[self.current_preset][i][
                 ButtonData.ButtonIndex.PROGRAM.value
-            ] = program_name
+            ] = ""
 
-    def _check_entries(self, index):
-        if self.comboboxes[index][ButtonData.ButtonIndex.NAME.value].get() == "Program":
-            self.comboboxes[index][ButtonData.ButtonIndex.PROGRAM.value].config(
-                state=tk.NORMAL
-            )
-        else:
-            self.comboboxes[index][ButtonData.ButtonIndex.PROGRAM.value].config(
-                state=tk.DISABLED
-            )
-
-        self.entries[index].set(
-            self.button_apps[self.current_preset][index][
+            self.button_apps[self.current_preset][i][
                 ButtonData.ButtonIndex.PROGRAM.value
-            ]
-        )
+            ] = ""
+
+            widget = self.dynamic_widgets[i].winfo_children()
+            if widget:
+                if isinstance(widget[0], ttk.Combobox):
+                    self.button_apps[self.current_preset][i][
+                        ButtonData.ButtonIndex.PROGRAM.value
+                    ] = widget[0].get()
+                elif isinstance(widget[0], ttk.Entry):
+                    self.button_apps[self.current_preset][i][
+                        ButtonData.ButtonIndex.PROGRAM_PATH.value
+                    ] = widget[0].get()
+
+    def _update_third_column(self, index):
+        """Actualiza el widget en la tercera columna según la selección en la primera columna"""
+        selected_option = self.comboboxes[index][0].get()
+        frame_dynamic = self.dynamic_widgets[index]
+
+        for widget in frame_dynamic.winfo_children():
+            widget.destroy()
+
+        if (
+            selected_option
+            == ButtonData.program_mode_names[ButtonData.ProgramModes.PROGRAM.value]
+        ):
+            combo3 = ttk.Combobox(
+                frame_dynamic, values=self.button_controler.get_program_names()
+            )
+            combo3.pack()
+        elif (
+            selected_option
+            == ButtonData.program_mode_names[ButtonData.ProgramModes.PROGRAM_PATH.value]
+        ):
+            entry = ttk.Entry(frame_dynamic)
+            entry.pack()
+
+        widget = self.dynamic_widgets[index].winfo_children()
+        if widget:
+            if isinstance(widget[0], ttk.Combobox):
+                widget[0].set(
+                    self.button_apps[self.current_preset][index][
+                        ButtonData.ButtonIndex.PROGRAM.value
+                    ]
+                )
+            elif isinstance(widget[0], ttk.Entry):
+                widget[0].delete(0, tk.END)
+                widget[0].insert(
+                    0,
+                    self.button_apps[self.current_preset][index][
+                        ButtonData.ButtonIndex.PROGRAM_PATH.value
+                    ],
+                )
 
     def _next_preset(self):
         self._save_preset()
