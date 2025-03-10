@@ -101,7 +101,7 @@ class Application:
 
         self.button_apps = [
             [
-                [ButtonData.button_list_names[0], ButtonData.mode_names[0], "", ""]
+                ["", ButtonData.mode_names[0], "", ""]
                 for _ in range(ButtonController.NUM_BUTTONS)
             ]
             for _ in range(ButtonController.NUM_PRESETS)
@@ -157,24 +157,24 @@ class Application:
         self.frame.pack(pady=20)
 
         self.comboboxes = []
-        self.dynamic_widgets = {}  # Para almacenar los widgets dinámicos
+        self.dynamic_widgets = {}
 
         for i in range(ButtonController.NUM_BUTTONS):
             row = []
 
-            # Combobox en la primera columna
             cb = ttk.Combobox(
-                self.frame, values=ButtonData.button_list_names, state="readonly"
+                self.frame,
+                values=ButtonData.get_names_from_button_list(),
+                state="readonly",
             )
             cb.grid(row=i, column=0, padx=5, pady=5)
             cb.bind(
                 "<<ComboboxSelected>>",
                 lambda event, index=i: self._update_third_column(index),
             )
-            cb.set(ButtonData.button_list_names[0])  # Default value
+            cb.set("")  # Default value
             row.append(cb)
 
-            # Combobox en la segunda columna
             cb2 = ttk.Combobox(
                 self.frame, values=ButtonData.mode_names, state="readonly"
             )
@@ -182,14 +182,12 @@ class Application:
             cb2.grid(row=i, column=1, padx=5, pady=5)
             row.append(cb2)
 
-            # Frame contenedor para el tercer campo (puede ser Combobox o Entry)
             frame_dynamic = tk.Frame(self.frame)
             frame_dynamic.grid(row=i, column=2, padx=5, pady=5)
-            self.dynamic_widgets[i] = frame_dynamic  # Guardamos el frame contenedor
+            self.dynamic_widgets[i] = frame_dynamic
 
             self.comboboxes.append(row)
 
-        # Botones de presets
         self.prev_button = tk.Button(self.app, text="<<", command=self._prev_preset)
         self.prev_button.pack(side=tk.LEFT, padx=10)
 
@@ -243,7 +241,6 @@ class Application:
                     ] = widget[0].get()
 
     def _update_third_column(self, index):
-        """Actualiza el widget en la tercera columna según la selección en la primera columna"""
         selected_option = self.comboboxes[index][0].get()
         frame_dynamic = self.dynamic_widgets[index]
 

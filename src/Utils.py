@@ -112,8 +112,3 @@ def get_full_list_installed_apps():
     find_exes_from_installed_apps(apps)
 
     return apps
-
-
-if __name__ == "__main__":
-    installed_apps = get_full_list_installed_apps()
-    input("\nPresiona Enter para salir...")

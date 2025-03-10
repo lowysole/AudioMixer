@@ -41,36 +41,27 @@ class Type(Enum):
 
 
 _button_list = [
-    {"type": Type.NONE, "action": ""},
-    {"type": Type.PROGRAM, "action": ""},
-    {"type": Type.PROGRAM, "action": ""},
+    {"name": "", "type": Type.NONE, "action": ""},
+    {"name": "Program", "type": Type.PROGRAM, "action": ""},
+    {"name": "Program (Enter Path)", "type": Type.PROGRAM, "action": ""},
     # Sound Type
-    {"type": Type.SOUND, "action": "mic"},
-    {"type": Type.SOUND, "action": "speakers"},
+    {"name": "Mute Mic", "type": Type.SOUND, "action": "mic"},
+    {"name": "Mute Speakers", "type": Type.SOUND, "action": "speakers"},
     # VK Type: Media
-    {"type": Type.VK, "action": win32con.VK_MEDIA_PLAY_PAUSE},
-    {"type": Type.VK, "action": win32con.VK_MEDIA_NEXT_TRACK},
-    {"type": Type.VK, "action": win32con.VK_MEDIA_PREV_TRACK},
+    {"name": "Play/Pause", "type": Type.VK, "action": win32con.VK_MEDIA_PLAY_PAUSE},
+    {"name": "Next Track", "type": Type.VK, "action": win32con.VK_MEDIA_NEXT_TRACK},
+    {"name": "Previous Track", "type": Type.VK, "action": win32con.VK_MEDIA_PREV_TRACK},
 ]
 
-# TODO Merge both lists
-button_list_names = [
-    "",
-    "Program",
-    "Program (Enter Path)",
-    # Sound Type
-    "Mute Mic",
-    "Mute Speakers",
-    # VK Type: Media
-    "Play/Pause",
-    "Next Track",
-    "Previous Track",
-]
+
+def get_names_from_button_list():
+    return [d.get("name") for d in _button_list]
 
 
 def get_button_id_from_name(name):
+    names = [d.get("name") for d in _button_list]
     for i in range(len(_button_list)):
-        if name == button_list_names[i]:
+        if name == names[i]:
             return i
 
 
