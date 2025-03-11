@@ -142,24 +142,11 @@ class ButtonController:
             print("Key not mapped to any know key")
 
     def _apply_open_program(self, id):
-        program_name = self.buttons[self._current_preset][id][2]
-
+        program_path = self.buttons[self._current_preset][id][2]
         try:
-            result = subprocess.run(
-                ["where", program_name], capture_output=True, text=True, check=True
-            )
+            subprocess.Popen(program_path, shell=True)
         except Exception as e:
-            print(f"Error finding path for program {program_name}: {e}")
-            return
-
-        path = result.stdout.strip().split("\n")[0]  # Get the first found path
-        if not path:
-            print("Path for {program_name} not found")
-
-        try:
-            subprocess.Popen(path, shell=True)
-        except Exception as e:
-            print(f"Error opening {program_name}: {e}")
+            print(f"Error opening {program_path}: {e}")
 
     def _update_preset(self, i):
         if i == 3:
