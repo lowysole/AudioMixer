@@ -150,9 +150,9 @@ class ButtonController:
 
     def _update_preset(self, i):
         if i == 3:
-            self._increase_preset()
+            self.increase_preset()
         elif i == 0:
-            self._decrease_preset()
+            self.decrease_preset()
         else:
             return False
 
@@ -162,13 +162,18 @@ class ButtonController:
         # )
         return True
 
-    def _increase_preset(self):
+    def increase_preset(self):
         self._current_preset = (self._current_preset + 1) % NUM_PRESETS
-        print(f"Current Preset: {self._current_preset}")
+        print(f"Current Preset: {self._current_preset + 1}")
+        return self._current_preset
 
-    def _decrease_preset(self):
-        self._current_preset = (self._current_preset - 1) % (NUM_PRESETS + 1)
-        print(f"Current Preset: {self._current_preset}")
+    def decrease_preset(self):
+        self._current_preset = (self._current_preset - 1) % NUM_PRESETS
+        print(f"Current Preset: {self._current_preset + 1}")
+        return self._current_preset
+
+    def get_preset(self):
+        return self._current_preset
 
     def _reset_press_counts(self):
         self._lastButtonsState = [0, 0, 0, 0]

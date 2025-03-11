@@ -137,6 +137,8 @@ class Application:
         if self.finished:
             return False
 
+        self._update_preset()
+
         return True
 
     def start_main_loop(self):
@@ -281,13 +283,19 @@ class Application:
 
     def _next_preset(self):
         self._save_preset()
-        self.current_preset = (self.current_preset + 1) % len(self.button_apps)
+        self.current_preset = self.button_controler.increase_preset()
         self._load_preset()
 
     def _prev_preset(self):
         self._save_preset()
-        self.current_preset = (self.current_preset - 1) % len(self.button_apps)
+        self.current_preset = self.button_controler.decrease_preset()
         self._load_preset()
+
+    def _update_preset(self):
+        new_preset = self.button_controler.get_preset()
+        if new_preset != self.current_preset:
+            self.current_preset = new_preset
+            self._load_preset()
 
     def _update_values(self):
         self.audio_controller.set_audio_sessions_name(self.slider_apps)
