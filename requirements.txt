@@ -1,3 +1,4 @@
 pycaw==20240210
 arduino-python3==0.6
 pywin32==308
+customtkinter==5.2.2

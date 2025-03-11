@@ -1,5 +1,7 @@
+import customtkinter as ctk
 import tkinter as tk
 from tkinter import ttk
+
 import ButtonData
 import ButtonController
 
@@ -114,24 +116,36 @@ class Application:
 
     def start(self):
         # TODO Uncomment self._check_lock()
-
         self.app.title("Audio Mixer")
-        self.app.geometry("480x480")
+        self.app.geometry("1000x1000")
         self.app.protocol("WM_DELETE_WINDOW", self._on_close)
-        self.app.resizable(width=False, height=False)
+        self.app.resizable(width=True, height=True)  # Allow resizing
 
-        ttk.Label(text="Sliders", master=self.app).pack()
-        tk.Entry(textvariable=self.slider_apps[0], master=self.app).pack()
-        tk.Entry(textvariable=self.slider_apps[1], master=self.app).pack()
-        tk.Entry(textvariable=self.slider_apps[2], master=self.app).pack()
-        tk.Entry(textvariable=self.slider_apps[3], master=self.app).pack()
+        self.column_widths = {"combobox1": 150, "combobox2": 100, "dynamic": 200}
 
-        tk.Label(text="Buttons", master=self.app).pack()
+        # Set theme
+        ctk.set_appearance_mode("dark")
+        ctk.set_default_color_theme("blue")
 
-        self._create_buttons_view()
+        # Main container
+        container = ctk.CTkFrame(self.app)
+        container.pack(expand=True, fill="both", padx=15, pady=15)
+
+        ctk.CTkLabel(container, text="Sliders").pack(pady=5)
+        self.slider_apps = [ctk.StringVar() for _ in range(4)]
+        for i in range(4):
+            ctk.CTkEntry(
+                container,
+                textvariable=self.slider_apps[i],
+                font=("Arial", 10),
+                width=250,
+            ).pack(pady=3)
+
+        ctk.CTkLabel(container, text="Buttons").pack(pady=10)
+        self._create_buttons_view(container)
         self._load_preset()
 
-        ttk.Button(text="Save", command=self._save_settings).pack()
+        ctk.CTkButton(container, text="Save", command=self._save_settings).pack(pady=10)
 
     def update(self):
         if self.finished:
@@ -154,50 +168,71 @@ class Application:
         self._update_values()
         save_settings_file(self.slider_apps, self.button_apps)
 
-    def _create_buttons_view(self):
-        self.frame = tk.Frame(self.app)
-        self.frame.pack(pady=20)
+    def _create_buttons_view(self, parent):
+        self.frame = ctk.CTkFrame(parent)
+        self.frame.pack(pady=5, fill="x")
 
         self.comboboxes = []
         self.dynamic_widgets = {}
 
-        for i in range(ButtonController.NUM_BUTTONS):
-            row = []
+        grid_config = {
+            "combobox1": self.column_widths["combobox1"],
+            "combobox2": self.column_widths["combobox2"],
+            "dynamic": self.column_widths["dynamic"],
+        }
 
-            cb = ttk.Combobox(
-                self.frame,
-                values=ButtonData.get_names_from_button_list(),
-                state="readonly",
-            )
-            cb.grid(row=i, column=0, padx=5, pady=5)
-            cb.bind(
-                "<<ComboboxSelected>>",
-                lambda event, index=i: self._update_third_column(index),
-            )
-            cb.set("")  # Default value
-            row.append(cb)
+        for i in range(4):  # Example with 4 buttons
+            row = ctk.CTkFrame(self.frame)
+            row.pack(pady=3, fill="x")
 
-            cb2 = ttk.Combobox(
-                self.frame, values=ButtonData.mode_names, state="readonly"
+            # First combobox
+            cb = ctk.CTkComboBox(
+                row,
+                values=[
+                    "Option 1",
+                    "Option 2",
+                    "Option 3",
+                    "Option 4",
+                ],  # Replace with actual values
+                state="normal",
+                font=("Arial", 10),
+                width=int(grid_config["combobox1"]),
             )
-            cb2.set(ButtonData.mode_names[0])  # Default value
-            cb2.grid(row=i, column=1, padx=5, pady=5)
-            row.append(cb2)
+            cb.pack(side="left", padx=5)
+            cb.set("")
 
-            frame_dynamic = tk.Frame(self.frame)
-            frame_dynamic.grid(row=i, column=2, padx=5, pady=5)
+            # Second combobox
+            cb2 = ctk.CTkComboBox(
+                row,
+                values=["Mode 1", "Mode 2", "Mode 3"],  # Replace with actual values
+                state="normal",
+                font=("Arial", 10),
+                width=int(grid_config["combobox2"]),
+            )
+            cb2.set("Mode 1")
+            cb2.pack(side="left", padx=5)
+
+            # Dynamic frame
+            frame_dynamic = ctk.CTkFrame(row, width=grid_config["dynamic"])
+            frame_dynamic.pack(side="left", padx=5, fill="x", expand=True)
             self.dynamic_widgets[i] = frame_dynamic
 
-            self.comboboxes.append(row)
+            self.comboboxes.append((cb, cb2))
 
-        self.prev_button = tk.Button(self.app, text="<<", command=self._prev_preset)
-        self.prev_button.pack(side=tk.LEFT, padx=10)
+        # Preset Navigation Controls
+        control_frame = ctk.CTkFrame(parent)
+        control_frame.pack(pady=10)
 
-        self.label_preset = tk.Label(self.app, text=f"Preset {self.current_preset + 1}")
-        self.label_preset.pack(side=tk.LEFT)
+        btn_prev = ctk.CTkButton(control_frame, text="<<", command=self._prev_preset)
+        btn_prev.pack(side="left", padx=10)
 
-        self.next_button = tk.Button(self.app, text=">>", command=self._next_preset)
-        self.next_button.pack(side=tk.RIGHT, padx=10)
+        self.label_preset = ctk.CTkLabel(
+            control_frame, text=f"Preset {self.current_preset + 1}"
+        )
+        self.label_preset.pack(side="left", padx=10)
+
+        btn_next = ctk.CTkButton(control_frame, text=">>", command=self._next_preset)
+        btn_next.pack(side="right", padx=10)
 
     def _load_preset(self):
         for i in range(ButtonController.NUM_BUTTONS):
@@ -212,7 +247,7 @@ class Application:
                 ]
             )
             self._update_third_column(i)
-        self.label_preset.config(text=f"Preset {self.current_preset + 1}")
+        self.label_preset.configure(text=f"Preset {self.current_preset + 1}")
 
     def _save_preset(self):
         for i in range(ButtonController.NUM_BUTTONS):
