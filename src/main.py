@@ -21,7 +21,7 @@ def main():
     if not App.check_lock():
         return
 
-    arduino_controller = ArduinoController(115200)
+    arduino_controller = ArduinoController(9600)
     audio_controller = AudioController(arduino_controller)
     button_controller = ButtonController(arduino_controller, audio_controller)
     application = App.Application(audio_controller, button_controller)

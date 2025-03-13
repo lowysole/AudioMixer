@@ -38,7 +38,19 @@ class ButtonController:
         for i in range(NUM_BUTTONS):
             button_value = self._arduino_controller.get_button_value(i)
 
-            if not self._lastButtonsState[i] and button_value:
+            increaseCount = False
+            if (
+                self.buttons[self._current_preset][i][ButtonData.ButtonIndex.MODE.value]
+                == ButtonData.Mode.PUSH_SINGLE
+            ):
+                if not self._lastButtonsState[i] and button_value:
+                    increaseCount = True
+            # TODO: Fix Toggle Mode
+            else:  # TOGGLE
+                if self._lastButtonsState[i] != button_value:
+                    increaseCount = True
+
+            if increaseCount:
                 currentTime = int(datetime.now().timestamp() * 1000)
 
                 if currentTime - self._lastPressTime[i] <= self._timeThreshold:
@@ -107,6 +119,8 @@ class ButtonController:
                     program_name
                 )
 
+        self._update_button_modes()
+
     def get_program_names(self):
         return list(self.programs.keys())
 
@@ -157,23 +171,33 @@ class ButtonController:
             return False
 
         self._reset_press_counts()
-        # self._arduino_controller.send_board_button_mode(
-        #    self._lastButtonsState[self._current_preset]
-        # )
         return True
 
     def increase_preset(self):
         self._current_preset = (self._current_preset + 1) % NUM_PRESETS
+
+        self._update_button_modes()
+
+        self._arduino_controller.send_board_preset(self._current_preset + 1)
         print(f"Current Preset: {self._current_preset + 1}")
         return self._current_preset
 
     def decrease_preset(self):
         self._current_preset = (self._current_preset - 1) % NUM_PRESETS
+
+        self._update_button_modes()
+
+        self._arduino_controller.send_board_preset(self._current_preset + 1)
         print(f"Current Preset: {self._current_preset + 1}")
         return self._current_preset
 
     def get_preset(self):
         return self._current_preset
+
+    def _update_button_modes(self):
+        self._arduino_controller.send_board_button_mode(
+            self.buttons[self._current_preset]
+        )
 
     def _reset_press_counts(self):
         self._lastButtonsState = [0, 0, 0, 0]

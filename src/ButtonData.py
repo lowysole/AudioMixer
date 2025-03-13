@@ -12,10 +12,10 @@ class ButtonIndex(Enum):
 
 class Mode(Enum):
     PUSH_SINGLE = 0
-    TOGGLE = 1
+    # TOGGLE = 1
 
 
-mode_names = ["On Push", "Toggle"]
+mode_names = ["On Push"]
 
 
 class ProgramModes(Enum):

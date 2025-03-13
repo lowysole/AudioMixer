@@ -8,8 +8,9 @@ const int NUM_BUTTONS = 4;
 const int digitalInputs[NUM_BUTTONS] = {2, 3, 4, 5};
 const int digitalOutputs[NUM_BUTTONS] = {7, 8, 9, 10};
 
-bool previousButtonState[2] = {false, false};
-bool previousLEDState[2] = {false, false};
+bool buttonMode[NUM_BUTTONS] = {0, 0, 0, 0};  // 0: PUSH, 1: TOOGLE
+bool previousButtonState[NUM_BUTTONS] = {false, false, false, false};
+bool previousLEDState[NUM_BUTTONS] = {false, false, false, false};
 
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/U8X8_PIN_NONE);
 
@@ -30,7 +31,7 @@ String readLine()
 
 void setup()
 {
-    setupDisplay();
+    setupDisplay(1);
 
     for (int i = 0; i < NUM_SLIDERS; ++i)
     {
@@ -50,16 +51,19 @@ void loop()
 {
     readInputValues();
     sendOutputValues();
-
     delay(100);
 }
 
-void setupDisplay()
+void setupDisplay(int preset)
 {
     u8g2.begin();
     u8g2.clearBuffer();
     u8g2.setFont(u8g2_font_helvB12_tr);
     u8g2.drawStr(5, 24, "AUDIO DECK");
+
+    char presetName[25];
+    sprintf(presetName, "Preset: %d", preset);
+    u8g2.drawStr(5, 48, presetName);
     u8g2.sendBuffer();
 }
 
@@ -70,12 +74,24 @@ void readInputValues()
         String data = readLine();
 
         char* action = strtok(data.c_str(), DELIMITER);
-        if (!strcmp(action, "INIT_BUTTON"))
+        if (!strcmp(action, "BUTTON_MODE"))
         {
-            previousLEDState[0] = atoi(strtok(NULL, DELIMITER));
-            previousLEDState[1] = atoi(strtok(NULL, DELIMITER));
-            digitalWrite(digitalOutputs[0], previousLEDState[0]);
-            digitalWrite(digitalOutputs[1], previousLEDState[1]);
+            for (int i = 0; i < NUM_BUTTONS; ++i)
+            {
+                buttonMode[i] = atoi(strtok(NULL, DELIMITER));
+            }
+        }
+        else if (!strcmp(action, "BUTTON_INIT"))
+        {
+            for (int i = 0; i < NUM_BUTTONS; ++i)
+            {
+                previousLEDState[i] = atoi(strtok(NULL, DELIMITER));
+                digitalWrite(digitalOutputs[i], previousLEDState[i]);
+            }
+        }
+        else if (!strcmp(action, "PRESET"))
+        {
+            setupDisplay(atoi(strtok(NULL, DELIMITER)));
         }
     }
 }
@@ -96,7 +112,7 @@ int updateSliderValues(int slider)
 
 bool updateButtonValues(int button)
 {
-    if (button < 2)
+    if (buttonMode[button])
     {
         bool inputState = digitalRead(digitalInputs[button]);
         if (previousButtonState[button] && !inputState)
@@ -117,29 +133,31 @@ bool updateButtonValues(int button)
 
 void sendOutputValues()
 {
-    String builtString = String("");
+    char builtString[100];
+    int index = 0;
 
     // SLIDERS
     for (int i = 0; i < NUM_SLIDERS; i++)
     {
-        builtString += String((int)updateSliderValues(i));
+        index += sprintf(&builtString[index], "%d", updateSliderValues(i));
 
         if (i < NUM_SLIDERS)
         {
-            builtString += String(DELIMITER);
+            index += sprintf(&builtString[index], "%s", DELIMITER);
         }
     }
 
     // BUTTONS
     for (int i = 0; i < NUM_BUTTONS; i++)
     {
-        builtString += String((bool)updateButtonValues(i));
+        index += sprintf(&builtString[index], "%d", updateButtonValues(i));
 
         if (i < NUM_BUTTONS - 1)
         {
-            builtString += String(DELIMITER);
+            index += sprintf(&builtString[index], "%s", DELIMITER);
         }
     }
 
-    Serial.println(builtString.c_str());
+    sprintf(&builtString[index], "\n");
+    Serial.print(builtString);
 }
