@@ -1,6 +1,4 @@
 import customtkinter as ctk
-import tkinter as tk
-from tkinter import ttk
 
 import ButtonData
 import ButtonController
@@ -88,17 +86,17 @@ def release_lock():
 class Application:
     def __init__(self, audio_controller, button_controller):
         self.finished = False
-        self.app = tk.Tk()
+        self.app = ctk.CTk()
 
         self.audio_controller = audio_controller
         self.button_controler = button_controller
 
         # App parameters
         self.slider_apps = [
-            tk.StringVar(),
-            tk.StringVar(),
-            tk.StringVar(),
-            tk.StringVar(),
+            ctk.StringVar(),
+            ctk.StringVar(),
+            ctk.StringVar(),
+            ctk.StringVar(),
         ]
 
         self.button_apps = [
@@ -111,41 +109,67 @@ class Application:
 
         self.current_preset = 0
 
-        read_settings_file(self.slider_apps, self.button_apps)
-        self._update_values()
-
     def start(self):
         # TODO Uncomment self._check_lock()
-        self.app.title("Audio Mixer")
-        self.app.geometry("1000x1000")
-        self.app.protocol("WM_DELETE_WINDOW", self._on_close)
-        self.app.resizable(width=True, height=True)  # Allow resizing
 
-        self.column_widths = {"combobox1": 150, "combobox2": 100, "dynamic": 200}
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        icon_path = os.path.join(script_dir, "icon.ico")
+        self.app.iconbitmap(icon_path)
+        self.app.title("Audio Mixer")
+        self.app.geometry("1000x750")
+        self.app.protocol("WM_DELETE_WINDOW", self._on_close)
+        self.app.resizable(width=True, height=True)
 
         # Set theme
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
 
         # Main container
-        container = ctk.CTkFrame(self.app)
+        container = ctk.CTkFrame(self.app, height=150)
         container.pack(expand=True, fill="both", padx=15, pady=15)
 
         ctk.CTkLabel(container, text="Sliders").pack(pady=5)
-        self.slider_apps = [ctk.StringVar() for _ in range(4)]
         for i in range(4):
             ctk.CTkEntry(
                 container,
                 textvariable=self.slider_apps[i],
-                font=("Arial", 10),
+                font=("Montserrat", 12),
                 width=250,
             ).pack(pady=3)
 
         ctk.CTkLabel(container, text="Buttons").pack(pady=10)
         self._create_buttons_view(container)
-        self._load_preset()
 
         ctk.CTkButton(container, text="Save", command=self._save_settings).pack(pady=10)
+
+        # Control Frame
+        control_frame = ctk.CTkFrame(self.app)
+        control_frame.pack(padx=15, pady=15)
+
+        btn_prev = ctk.CTkButton(control_frame, text="<<", command=self._prev_preset)
+        btn_prev.pack(side="left", padx=10)
+
+        self.label_preset = ctk.CTkLabel(
+            control_frame, text=f"Preset {self.current_preset + 1}"
+        )
+        self.label_preset.pack(side="left", padx=10)
+
+        btn_next = ctk.CTkButton(control_frame, text=">>", command=self._next_preset)
+        btn_next.pack(side="right", padx=10)
+
+        # Console Frame
+        self.console_frame = ctk.CTkFrame(self.app)
+        self.console_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+        self.console_text_1 = ctk.CTkTextbox(self.console_frame, width=400, height=150)
+        self.console_text_1.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+
+        self.console_text_2 = ctk.CTkTextbox(self.console_frame, width=200, height=150)
+        self.console_text_2.pack(side="right", fill="both", expand=True, padx=5, pady=5)
+
+        read_settings_file(self.slider_apps, self.button_apps)
+        self._update_values()
+        self._load_preset()
 
     def update(self):
         if self.finished:
@@ -169,34 +193,32 @@ class Application:
         save_settings_file(self.slider_apps, self.button_apps)
 
     def _create_buttons_view(self, parent):
-        self.frame = ctk.CTkFrame(parent)
+        self.frame = ctk.CTkFrame(parent, height=100)
         self.frame.pack(pady=5, fill="x")
 
         self.comboboxes = []
         self.dynamic_widgets = {}
 
         grid_config = {
-            "combobox1": self.column_widths["combobox1"],
-            "combobox2": self.column_widths["combobox2"],
-            "dynamic": self.column_widths["dynamic"],
+            "combobox1": 150,
+            "combobox2": 100,
+            "dynamic": 200,
+            "height": 25,
         }
 
-        for i in range(4):  # Example with 4 buttons
+        for i in range(4):
             row = ctk.CTkFrame(self.frame)
             row.pack(pady=3, fill="x")
 
             # First combobox
             cb = ctk.CTkComboBox(
                 row,
-                values=[
-                    "Option 1",
-                    "Option 2",
-                    "Option 3",
-                    "Option 4",
-                ],  # Replace with actual values
+                values=ButtonData.get_names_from_button_list(),
                 state="normal",
-                font=("Arial", 10),
+                font=("Montserrat", 12),
                 width=int(grid_config["combobox1"]),
+                height=int(grid_config["height"]),
+                command=lambda choice, index=i: self._update_third_column(index),
             )
             cb.pack(side="left", padx=5)
             cb.set("")
@@ -204,35 +226,23 @@ class Application:
             # Second combobox
             cb2 = ctk.CTkComboBox(
                 row,
-                values=["Mode 1", "Mode 2", "Mode 3"],  # Replace with actual values
+                values=ButtonData.mode_names,
                 state="normal",
-                font=("Arial", 10),
+                font=("Montserrat", 12),
                 width=int(grid_config["combobox2"]),
+                height=int(grid_config["height"]),
             )
-            cb2.set("Mode 1")
+            cb2.set("On Push")
             cb2.pack(side="left", padx=5)
 
             # Dynamic frame
             frame_dynamic = ctk.CTkFrame(row, width=grid_config["dynamic"])
-            frame_dynamic.pack(side="left", padx=5, fill="x", expand=True)
+            frame_dynamic.pack(side="left", fill="x", expand=True)
             self.dynamic_widgets[i] = frame_dynamic
 
             self.comboboxes.append((cb, cb2))
 
-        # Preset Navigation Controls
-        control_frame = ctk.CTkFrame(parent)
-        control_frame.pack(pady=10)
-
-        btn_prev = ctk.CTkButton(control_frame, text="<<", command=self._prev_preset)
-        btn_prev.pack(side="left", padx=10)
-
-        self.label_preset = ctk.CTkLabel(
-            control_frame, text=f"Preset {self.current_preset + 1}"
-        )
-        self.label_preset.pack(side="left", padx=10)
-
-        btn_next = ctk.CTkButton(control_frame, text=">>", command=self._next_preset)
-        btn_next.pack(side="right", padx=10)
+            self._update_third_column(i)
 
     def _load_preset(self):
         for i in range(ButtonController.NUM_BUTTONS):
@@ -268,11 +278,11 @@ class Application:
 
             widget = self.dynamic_widgets[i].winfo_children()
             if widget:
-                if isinstance(widget[0], ttk.Combobox):
+                if isinstance(widget[0], ctk.CTkComboBox):
                     self.button_apps[self.current_preset][i][
                         ButtonData.ButtonIndex.PROGRAM.value
                     ] = widget[0].get()
-                elif isinstance(widget[0], ttk.Entry):
+                elif isinstance(widget[0], ctk.CTkEntry):
                     self.button_apps[self.current_preset][i][
                         ButtonData.ButtonIndex.PROGRAM_PATH.value
                     ] = widget[0].get()
@@ -288,27 +298,30 @@ class Application:
             selected_option
             == ButtonData.program_mode_names[ButtonData.ProgramModes.PROGRAM.value]
         ):
-            combo3 = ttk.Combobox(
+            combo3 = ctk.CTkComboBox(
                 frame_dynamic, values=self.button_controler.get_program_names()
             )
-            combo3.pack()
+            combo3.pack(fill="x")
         elif (
             selected_option
             == ButtonData.program_mode_names[ButtonData.ProgramModes.PROGRAM_PATH.value]
         ):
-            entry = ttk.Entry(frame_dynamic)
-            entry.pack()
+            entry = ctk.CTkEntry(frame_dynamic)
+            entry.pack(fill="x")
+        else:
+            entry = ctk.CTkLabel(frame_dynamic, text="")
+            entry.pack(fill="x")
 
         widget = self.dynamic_widgets[index].winfo_children()
         if widget:
-            if isinstance(widget[0], ttk.Combobox):
+            if isinstance(widget[0], ctk.CTkComboBox):
                 widget[0].set(
                     self.button_apps[self.current_preset][index][
                         ButtonData.ButtonIndex.PROGRAM.value
                     ]
                 )
-            elif isinstance(widget[0], ttk.Entry):
-                widget[0].delete(0, tk.END)
+            elif isinstance(widget[0], ctk.CTkEntry):
+                widget[0].delete(0, ctk.END)
                 widget[0].insert(
                     0,
                     self.button_apps[self.current_preset][index][
