@@ -16,8 +16,6 @@ def controllers_thread(
 
 
 def main():
-    App.release_lock()  ## Uncomment
-
     if not App.check_lock():
         return
 

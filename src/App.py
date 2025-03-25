@@ -2,6 +2,7 @@ import customtkinter as ctk
 
 import ButtonData
 import ButtonController
+import Utils
 
 import json
 import os
@@ -11,10 +12,11 @@ SETTINGS = "settings.json"
 
 
 def read_settings_file(sliders, buttons):
-    if not os.path.exists(SETTINGS):
+    file = os.path.join(Utils.get_base_path(), SETTINGS)
+    if not os.path.exists(file):
         return
 
-    with open(SETTINGS, "r", encoding="utf-8") as settings_file:
+    with open(file, "r", encoding="utf-8") as settings_file:
         json_file = json.load(settings_file)
 
         sliders[0].set(json_file["sliders"]["slider_1"])
@@ -44,7 +46,9 @@ def read_settings_file(sliders, buttons):
 
 
 def save_settings_file(sliders, buttons):
-    with open(SETTINGS, "w", encoding="utf-8") as settings_file:
+    with open(
+        os.path.join(Utils.get_base_path(), SETTINGS), "w", encoding="utf-8"
+    ) as settings_file:
         data = {
             "sliders": {
                 "slider_1": sliders[0].get(),
@@ -69,22 +73,26 @@ def save_settings_file(sliders, buttons):
 
 
 def check_lock():
-    if os.path.exists(LOCKFILE):
+    file = os.path.join(Utils.get_base_path(), LOCKFILE)
+    if os.path.exists(file):
         print("The app is already running!")
         return False
     # Create lock file
-    with open(LOCKFILE, "w", encoding="utf-8") as f:
+    with open(file, "w", encoding="utf-8") as f:
         f.write("locked")
     return True
 
 
 def release_lock():
-    if os.path.exists(LOCKFILE):
-        os.remove(LOCKFILE)
+    file = os.path.join(Utils.get_base_path(), LOCKFILE)
+    if os.path.exists(file):
+        os.remove(file)
 
 
 class Application:
     def __init__(self, audio_controller, button_controller):
+        Utils.create_base_folder()
+
         self.finished = False
         self.app = ctk.CTk()
 
@@ -110,10 +118,7 @@ class Application:
         self.current_preset = 0
 
     def start(self):
-        # TODO Uncomment self._check_lock()
-
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        icon_path = os.path.join(script_dir, "icon.ico")
+        icon_path = os.path.join(Utils.get_base_path(True), "icon.ico")
         self.app.iconbitmap(icon_path)
         self.app.title("Audio Mixer")
         self.app.geometry("1000x750")

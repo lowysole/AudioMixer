@@ -93,7 +93,8 @@ class ArduinoController:
         if self.board:
             self.board.close()
 
-        self.thread.join()
+        if self.thread.is_alive():
+            self.thread.join()
 
     def reconnect(self):
         try:

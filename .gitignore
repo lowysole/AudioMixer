@@ -10,3 +10,8 @@ __pycache__/
 # Project files
 app.lock
 settings.json
+
+# Build
+build/
+dist/
+*.spec

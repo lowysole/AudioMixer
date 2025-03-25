@@ -1,5 +1,27 @@
+import os
 import subprocess
+import sys
 import winreg
+
+
+def create_base_folder():
+    appdata_folder = os.path.join(os.getenv("USERPROFILE"), "Documents", "AudioMixer")
+    os.makedirs(appdata_folder, exist_ok=True)
+
+
+def get_base_path(is_abs=False):
+    path = ""
+    if getattr(sys, "frozen", False):
+        # Running as an executable
+        if is_abs:
+            path = os.path.dirname(os.path.abspath(__file__))
+        else:
+            path = os.path.join(os.getenv("USERPROFILE"), "Documents", "AudioMixer")
+    else:
+        # Running as a Python script
+        path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    return path
 
 
 def find_installed_apps_from_registry(reg_hive, reg_path):
