@@ -1,0 +1,67 @@
+name: Build and Release Executable
+
+on:
+  push:
+    tags:
+      - 'v*'  # This will trigger the workflow when a new version tag is pushed (e.g., v1.0.0)
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest 
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11.9'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller  # Install PyInstaller for packaging the executable
+        pip install -r requirements.txt  # Install any additional dependencies for your project
+
+    - name: Run build_exe.py to create executable
+      run: |
+        python build_exe.py
+
+    - name: Upload the executable as an artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: AudioMixer
+        path: dist/AudioMixer.exe
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Download artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: AudioMixer
+        path: build/
+
+    - name: Upload the executable as a GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        name: Release ${{ github.ref_name }}
+        body: |
+          ✨ **Release Notes**
+
+          - Version: ${{ github.ref_name }}
+          - Built automatically by GitHub Actions 🚀
+          
+          Enjoy!
+        files: build/AudioMixer.exe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
