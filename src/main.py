@@ -4,6 +4,7 @@ import App
 from AudioController import AudioController
 from BoardController import ArduinoController
 from ButtonController import ButtonController
+from Logger import logger
 
 
 def controllers_thread(
@@ -42,7 +43,7 @@ def main():
 
     arduino_controller.close()
 
-    print("Finished!")
+    logger.info("Finished!")
 
 
 if __name__ == "__main__":

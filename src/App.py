@@ -1,5 +1,6 @@
 import customtkinter as ctk
 
+from Logger import logger, logger_arduino
 import ButtonData
 import ButtonController
 import Utils
@@ -75,7 +76,7 @@ def save_settings_file(sliders, buttons):
 def check_lock():
     file = os.path.join(Utils.get_base_path(), LOCKFILE)
     if os.path.exists(file):
-        print("The app is already running!")
+        logger.error("The app is already running!")
         return False
     # Create lock file
     with open(file, "w", encoding="utf-8") as f:
@@ -175,6 +176,8 @@ class Application:
         read_settings_file(self.slider_apps, self.button_apps)
         self._update_values()
         self._load_preset()
+
+        self._update_logs()
 
     def update(self):
         if self.finished:
@@ -353,3 +356,19 @@ class Application:
     def _update_values(self):
         self.audio_controller.set_audio_sessions_name(self.slider_apps)
         self.button_controler.update_button_values(self.button_apps)
+
+    def _update_logs(self):
+        logs = logger.get_all_logs()
+        logs_arduino = logger_arduino.get_all_logs()
+
+        self.console_text_1.delete("1.0", "end")
+        self.console_text_1.insert("end", logs)
+
+        self.console_text_1.yview("end")
+
+        self.console_text_2.delete("1.0", "end")
+        self.console_text_2.insert("end", logs_arduino)
+
+        self.console_text_2.yview("end")
+
+        self.app.after(1000, self._update_logs)

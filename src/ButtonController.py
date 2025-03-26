@@ -3,6 +3,7 @@ import subprocess
 
 import win32api
 
+from Logger import logger
 import ButtonData
 import Utils
 
@@ -153,14 +154,14 @@ class ButtonController:
             hwcode = win32api.MapVirtualKey(action, 0)
             win32api.keybd_event(action, hwcode)
         except Exception:
-            print("Key not mapped to any know key")
+            logger.warning("Key not mapped to any know key")
 
     def _apply_open_program(self, id):
         program_path = self.buttons[self._current_preset][id][2]
         try:
             subprocess.Popen(program_path, shell=True)
         except Exception as e:
-            print(f"Error opening {program_path}: {e}")
+            logger.error(f"Error opening {program_path}: {e}")
 
     def _update_preset(self, i):
         if i == 3:
@@ -179,7 +180,7 @@ class ButtonController:
         self._update_button_modes()
 
         self._arduino_controller.send_board_preset(self._current_preset + 1)
-        print(f"Current Preset: {self._current_preset + 1}")
+        logger.info(f"Current Preset: {self._current_preset + 1}")
         return self._current_preset
 
     def decrease_preset(self):
@@ -188,7 +189,7 @@ class ButtonController:
         self._update_button_modes()
 
         self._arduino_controller.send_board_preset(self._current_preset + 1)
-        print(f"Current Preset: {self._current_preset + 1}")
+        logger.info(f"Current Preset: {self._current_preset + 1}")
         return self._current_preset
 
     def get_preset(self):

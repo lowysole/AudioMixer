@@ -3,11 +3,10 @@ import time
 import traceback
 
 from Arduino import Arduino
+from Logger import logger, logger_arduino
 import serial.tools.list_ports
 
 import ButtonController
-
-DEBUG = True
 
 
 class ArduinoController:
@@ -36,7 +35,7 @@ class ArduinoController:
             self.board.timeout = 3
             self.board.open()
         except Exception:
-            print(traceback.format_exc())
+            logger.error(traceback.format_exc())
             return
 
         self._board_is_open = True
@@ -53,18 +52,17 @@ class ArduinoController:
         try:
             result = self.board.readline().decode("utf-8").strip()
         except UnicodeDecodeError:
-            print("Error decoding characters...")
+            logger.warning("Error decoding characters...")
             return
         except serial.SerialException:
             self._board_is_open = False
             return
 
-        if DEBUG:
-            print(result)
+        logger_arduino.log(result)
 
         result_splited = result.split("|")
         if len(result_splited) != self._slicer_num + ButtonController.NUM_BUTTONS:
-            print("Discarting received values...")
+            logger.warning("Discarting received values...")
             return
 
         for i in range(0, self._slicer_num + ButtonController.NUM_BUTTONS):
@@ -77,7 +75,7 @@ class ArduinoController:
                     self._buttons[i - self._slicer_num] = int(result_splited[i])
 
             except ValueError:
-                print(f"Discarting received slider {i} value...")
+                logger.warning(f"Discarting received slider {i} value...")
 
     def _update_command_queue(self):
         while self._board_is_open:
@@ -106,17 +104,17 @@ class ArduinoController:
             self.thread.start()
             return True
         except Exception:
-            print(traceback.format_exc())
+            logger.error(traceback.format_exc())
             return False
 
     def get_port(self):
         ports = list(serial.tools.list_ports.comports())
         for port in ports:
             if "USB-SERIAL CH340" in port.description:
-                print(f"Arduino found on Port: {port.device}")
+                logger.info(f"Arduino found on Port: {port.device}")
                 return port.device
 
-        print("Arduino device not found.")
+        logger.info("Arduino device not found.")
 
     def get_slicer_gain(self, id):
         assert id < 4
